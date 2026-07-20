@@ -1,210 +1,311 @@
-# Loom
+# Loom 🧵
 
-Loom is a multi-agent writers' room for branching interactive fiction. You provide a premise, and a group of specialized Qwen-powered agents develops it scene by scene:
+> **Stories that remember. Choices that matter.**
+> A multi-agent writers' room for branching interactive fiction, where Concept, Plotter, Dialogue, and Continuity agents collaborate to write episodic stories while a persistent story bible keeps the world coherent.
+>
+> Built for the **Global AI Hackathon Series with Qwen Cloud** — Track 2: AI Showrunner, with strong overlap with Track 1: MemoryAgent and Track 3: Agent Society.
 
-- **Concept Agent** proposes the next story beats and helps grow the story bible.
-- **Plotter Agent** expands those beats into a concrete scene brief.
-- **Dialogue Agent** writes the scene and streams the prose live to the browser.
-- **Continuity Checker** reviews the completed scene against the story bible and records contradictions, character drift, or unresolved threads.
-- **Showrunner UI** exposes the handoffs, agent status, generated prose, choices, branches, and continuity notes as one writers' room workspace.
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![React](https://img.shields.io/badge/React-19-61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Qwen Cloud](https://img.shields.io/badge/AI-Qwen%20Cloud-orange)
+![Postgres](https://img.shields.io/badge/Database-Neon%20Postgres-00E599)
+![Auth](https://img.shields.io/badge/Auth-Clerk-purple)
+![UI](https://img.shields.io/badge/UI-shadcn%2Fui-black)
 
-Loom is designed for the **AI Showrunner** track of the Global AI Hackathon Series with Qwen Cloud, with additional strengths in persistent memory and multi-agent collaboration.
+---
 
-## Product Overview
+## What is Loom?
 
-Loom treats an interactive story as a living writers' room rather than a single prompt-and-response interaction.
+Most AI writing tools give you a prompt box and one answer. Loom gives you a writers' room.
 
-```mermaid
-flowchart LR
-    reader[Reader / Writer] --> premise[Story premise]
-    premise --> concept[Concept Agent]
-    concept --> plotter[Plotter Agent]
-    plotter --> dialogue[Dialogue Agent]
-    dialogue --> prose[Streamed scene prose]
-    prose --> continuity[Continuity Checker]
-    continuity --> bible[Story Bible]
-    continuity --> flags[Continuity flags]
-    prose --> choices[Reader choices]
-    choices --> branches[Persistent story branches]
-    branches --> concept
-    bible --> concept
-    bible --> plotter
-    bible --> continuity
+You start with a premise. A Concept Agent finds the next dramatic beat, a Plotter Agent turns it into a scene brief, and a Dialogue Agent writes the scene live in the manuscript. Once the prose is complete, a Continuity Checker compares it against the story bible and marks contradictions, character drift, and unresolved threads.
+
+Then the story hands the decision back to you.
+
+Each finished scene can offer three possible directions. Choose one and Loom creates a persistent branch. The original timeline stays intact, alternate paths remain available, and the next generation receives the relevant inherited story context.
+
+The result is an episodic interactive story that can grow without quietly forgetting what it established earlier.
+
+---
+
+## Table of Contents
+
+- [What is Loom?](#what-is-loom)
+- [Why it is interesting](#why-it-is-interesting)
+- [What it does](#what-it-does)
+- [Tech stack](#tech-stack)
+- [Features](#features)
+- [System architecture](#system-architecture)
+- [The writers' room](#the-writers-room)
+- [Story-bible memory](#story-bible-memory)
+- [Branching story model](#branching-story-model)
+- [Streaming protocol](#streaming-protocol)
+- [Data model](#data-model)
+- [Generation lifecycle](#generation-lifecycle)
+- [Project structure](#project-structure)
+- [User flows](#user-flows)
+- [API reference](#api-reference)
+- [Component reference](#component-reference)
+- [Setup and local development](#setup-and-local-development)
+- [Environment variables](#environment-variables)
+- [Qwen Cloud, Neon, and Clerk setup](#qwen-cloud-neon-and-clerk-setup)
+- [Key technical decisions](#key-technical-decisions)
+- [Design trade-offs](#design-trade-offs)
+- [Known limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Hackathon submission notes](#hackathon-submission-notes)
+- [License](#license)
+
+---
+
+## Why it is interesting
+
+The hard part of AI-generated fiction is not producing one good paragraph. It is preserving a believable world across many paragraphs, scenes, episodes, and possible futures.
+
+Loom approaches that problem through three visible ideas:
+
+1. **Specialized agents instead of one mega-prompt** — planning, prose, and continuity each have a focused responsibility.
+2. **A story bible that grows from the writing** — characters and world rules become durable memory rather than disposable context.
+3. **Branches as first-class story state** — reader choices create navigable timelines instead of overwriting the current narrative.
+
+The architecture is intentionally visible in the product. During a demo, the audience can watch the agents hand work to one another, see prose arrive token by token, inspect the story bible, select a branch, and find continuity notes attached directly to the manuscript.
+
+---
+
+## What it does
+
+You provide a title and premise. Loom creates the first episode and opens the writers' room.
+
+For every scene, the system:
+
+1. Reads the existing premise, branch history, characters, and world rules.
+2. Asks Concept for a short beat sheet.
+3. Asks Plotter to expand the beat sheet into a scene brief.
+4. Streams Dialogue prose directly into the manuscript.
+5. Extracts durable world facts from the completed scene.
+6. Proposes three possible directions for what happens next.
+7. Runs Continuity against the updated story bible.
+8. Persists the scene, branch, agent runs, choices, rules, and flags.
+9. Waits for the reader to review the result and choose the next move.
+
+You can switch between the **Writers Table** and **Story Bible** inside the episode workspace. The Story Bible contains characters and world rules; continuity issues appear as inline manuscript markers.
+
+---
+
+## Tech stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Frontend | Next.js 16 App Router, React 19, TypeScript | Server-rendered routes with interactive client workspaces |
+| Styling | Tailwind CSS v4 | Utility-first responsive layout and theme variables |
+| Components | shadcn/ui and Base UI | Consistent buttons, cards, tabs, select controls, and textareas |
+| Auth | Clerk v7 | Session identity and protected story access |
+| Database | Neon Postgres | Relational persistence for stories, episodes, scenes, branches, and flags |
+| ORM | Drizzle ORM | Typed schema definitions and SQL queries |
+| Agent layer | LangChain and `deepagents` | Qwen-compatible model calls and specialized agent tools |
+| Model | Qwen Cloud | OpenAI-compatible text generation endpoint |
+| Streaming | NDJSON over a Next.js Route Handler | Live agent statuses and prose chunks in one response |
+| Hosting target | Vercel-compatible Next.js deployment | Simple deployment for the full-stack App Router application |
+| Diagrams | Mermaid | Architecture and lifecycle diagrams versioned with the project |
+
+Qwen Cloud is accessed through:
+
+```text
+https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ```
 
-The result is an episodic story that can evolve in multiple directions while retaining its characters, setting rules, and unresolved narrative threads.
+The OpenAI-compatible endpoint lets Loom use LangChain's `ChatOpenAI` adapter while keeping the provider configuration in one file: `lib/qwen.ts`.
 
-## Core Features
+---
 
-### Multi-agent writers' room
+## Features
 
-Each generation passes through specialized roles instead of asking one model to perform every task at once. This makes the pipeline easier to understand, easier to debug, and more compelling to demonstrate.
+- **A writers' room, not a prompt box** — Concept, Plotter, Dialogue, and Continuity agents each have a focused role.
+- **Live prose streaming** — Dialogue text appears as it is generated instead of waiting for one large response.
+- **Visible agent handoffs** — The Writers Table reports which agent is thinking, writing, reviewing, or done.
+- **Persistent story bible** — Characters and world rules survive across scenes and episodes.
+- **Automatic world-rule extraction** — Durable setting facts are extracted from completed prose and deduplicated before persistence.
+- **Inline continuity markers** — Contradictions, character drift, and unresolved threads attach to the scene where they were found.
+- **Branching timelines** — Reader choices create child branches while preserving the original timeline.
+- **Branch resume** — The active branch is represented in the URL and can be revisited from the Story paths selector.
+- **Review-driven continuation** — One scene completes before the user decides what happens next.
+- **Qwen token visibility** — Best-effort generation usage appears in the workspace after a completed scene.
+- **Clerk ownership checks** — Stories and branches are scoped to the authenticated user.
+- **Responsive workspace** — Desktop and mobile share Writers Table / Story Bible tabs.
+- **shadcn-based controls** — Story paths, sidebar tabs, story cards, buttons, and the new-story premise field use the shared UI primitives.
 
-### Live generation
+---
 
-The Dialogue Agent streams prose to the browser while the writers' room updates its agent statuses. The interface shows when agents are thinking, writing, reviewing, or finished.
-
-### Persistent story bible
-
-Loom stores characters and world rules in Postgres through Drizzle ORM. World facts extracted from completed scenes are deduplicated and associated with the episode that established them.
-
-### Continuity checking
-
-The Continuity Checker reads the current story bible and can record:
-
-- Contradictions with established facts.
-- Character drift, such as personality or trait changes.
-- Unresolved narrative threads.
-
-Flags appear inline in the manuscript and remain attached to their scene.
-
-### Branching interactive fiction
-
-Completed scenes can offer three reader-facing directions. Selecting a direction creates a persistent child branch. The original timeline and alternate paths remain available through the Story paths selector.
-
-### Review-driven workflow
-
-Loom generates one scene at a time. The user reviews the prose and continuity notes, then explicitly chooses the next direction or starts an unsteered scene. Full autonomous episode generation is intentionally deferred so the human remains in the creative loop.
-
-### Token visibility
-
-The stream reports best-effort token usage for the scene generation pipeline. The workspace displays this usage after a completed generation so the cost and performance characteristics remain visible during a demo.
-
-## Architecture
-
-### High-level system architecture
+## System architecture
 
 ```mermaid
 flowchart TB
-    browser[Next.js browser client]
-    pages[App Router pages]
-    workspace[Episode Workspace]
-    streamHook[useSceneStream hook]
-    route[POST /api/episodes/:episodeId/generate]
-    auth[Clerk authentication]
-    orchestration[LangChain + deepagents orchestration]
-    qwen[Qwen Cloud OpenAI-compatible API]
-    tools[Story bible and continuity tools]
-    database[(Neon Postgres)]
+    User["Reader / Writer<br/>Browser"]
 
-    browser --> pages
-    pages --> workspace
-    workspace --> streamHook
-    streamHook --> route
-    route --> auth
-    route --> orchestration
-    orchestration --> qwen
-    orchestration --> tools
-    tools --> database
-    route --> database
-    route --> streamHook
+    subgraph Next["Next.js 16 App Router"]
+        Pages["Server pages<br/>stories, episodes, bible"]
+        Workspace["Episode Workspace<br/>manuscript + sidebar"]
+        Hook["useSceneStream<br/>NDJSON client reader"]
+        Route["POST /api/episodes/:episodeId/generate"]
+    end
+
+    subgraph Auth["Clerk"]
+        Identity["Authenticated user identity"]
+    end
+
+    subgraph Agents["LangChain + deepagents"]
+        Concept["Concept Agent"]
+        Plotter["Plotter Agent"]
+        Dialogue["Dialogue Agent"]
+        Continuity["Continuity Checker"]
+        Tools["Bible + continuity tools"]
+    end
+
+    Qwen["Qwen Cloud<br/>OpenAI-compatible API"]
+    DB[("Neon Postgres")]
+
+    User --> Pages
+    Pages --> Workspace
+    Workspace --> Hook
+    Hook --> Route
+    Route --> Identity
+    Route --> Concept
+    Route --> Plotter
+    Route --> Dialogue
+    Route --> Continuity
+    Concept --> Qwen
+    Plotter --> Qwen
+    Dialogue --> Qwen
+    Continuity --> Qwen
+    Concept --> Tools
+    Continuity --> Tools
+    Tools --> DB
+    Route --> DB
+    Route --> Hook
 ```
 
-### Technology stack
+### Why this shape
 
-| Layer | Technology | Responsibility |
-| --- | --- | --- |
-| Frontend | Next.js 16 App Router | Server-rendered pages and client workspace interactions |
-| UI | Tailwind CSS v4, shadcn/ui, Base UI | Design system, responsive layout, controls, cards, tabs, select, textarea |
-| Authentication | Clerk v7 | Sign-in, sign-up, session identity, route ownership checks |
-| Backend | Next.js Route Handlers | Authenticated generation endpoint and NDJSON streaming |
-| Agent orchestration | LangChain, `deepagents` | Qwen model adapters, specialized agents, tool access |
-| Model provider | Qwen Cloud | OpenAI-compatible text generation endpoint |
-| Database | Neon Postgres | Stories, episodes, scenes, branches, story bible, flags, and agent runs |
-| ORM | Drizzle ORM | Typed schema definitions and database queries |
-| Language | TypeScript | Shared types across server and client |
+- **Next.js owns the product surface** — pages, server-side database reads, authenticated route handlers, and the client streaming workspace stay in one application.
+- **Clerk owns identity** — Loom stores the Clerk user ID rather than maintaining a duplicate user table.
+- **Neon owns durable story state** — the database is the source of truth for stories, scenes, branches, story-bible entries, flags, and agent runs.
+- **Qwen owns language generation** — all model calls are routed through one provider adapter.
+- **The browser owns transient stream state** — prose and statuses are rendered immediately, then the server refreshes the persisted branch after completion.
 
-### Request and generation sequence
+---
+
+## The writers' room
+
+Loom uses specialized agents because a single model call should not have to simultaneously plan a scene, write polished prose, maintain database state, and audit continuity.
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant UI as Episode Workspace
-    participant Hook as useSceneStream
-    participant API as Generate Route
-    participant DB as Neon Postgres
-    participant Qwen as Qwen Cloud
-
-    User->>UI: Selects a branch or reader choice
-    UI->>Hook: start(episodeId, choice, branchId)
-    Hook->>API: POST JSON request
-    API->>DB: Authenticate story and validate branch
-    API->>DB: Create/resume branch and mark episode writing
-    API-->>Hook: status: concept thinking
-    API->>Qwen: Concept Agent invocation
-    Qwen-->>API: Beat sheet
-    API->>DB: Persist Concept agent run
-    API-->>Hook: status: concept done
-    API-->>Hook: status: plotter thinking
-    API->>Qwen: Plotter Agent invocation
-    Qwen-->>API: Scene brief
-    API->>DB: Persist Plotter agent run
-    API-->>Hook: status: plotter done
-    API-->>Hook: status: dialogue writing
-    API->>Qwen: Streaming Dialogue invocation
-    Qwen-->>API: Prose chunks
-    API-->>Hook: prose events
-    API->>DB: Persist completed scene
-    API->>Qwen: Extract durable world rules
-    Qwen-->>API: JSON rule candidates
-    API->>DB: Deduplicate and persist story-bible rules
-    API->>Qwen: Propose reader choices
-    Qwen-->>API: Three choices
-    API->>DB: Persist choices on scene
-    API-->>Hook: status: continuity reviewing
-    API->>Qwen: Continuity Checker invocation
-    Qwen->>DB: Record continuity flags through tool
-    API->>DB: Persist Continuity agent run
-    API-->>Hook: final scene, branch, flags, choices, token usage
-    Hook-->>UI: Refresh active branch
-    UI-->>User: Review scene and choose next direction
+flowchart LR
+    Input["Premise + branch context + reader choice"] --> Concept
+    Concept["Concept Agent<br/>3–5 dramatic beats"] --> Plotter
+    Plotter["Plotter Agent<br/>setting, POV, emotional beat, ending"] --> Dialogue
+    Dialogue["Dialogue Agent<br/>streamed scene prose"] --> Bible
+    Bible["Story-bible extraction<br/>durable world facts"] --> Choices
+    Choices["Choice proposal<br/>three reader directions"] --> Continuity
+    Continuity["Continuity Checker<br/>flags contradictions and drift"] --> Final["Persist + review"]
 ```
 
-## Agent Design
+### Agent responsibilities
 
-### Concept Agent
+| Agent | Reads | Produces | Persistence |
+|---|---|---|---|
+| **Concept** | Premise, characters, world rules, branch context | Beat sheet and reader directions | Agent run; optional character/rule tool updates |
+| **Plotter** | Beat sheet and story bible | Concrete scene brief | Agent run |
+| **Dialogue** | Scene brief and selected direction | Streamed prose | Agent run and `scenes` row |
+| **Continuity** | Completed scene and story bible | Review summary and issue tool calls | Agent run and `continuity_flags` rows |
 
-The Concept Agent proposes a short beat sheet for the next scene. It reads existing characters and world rules and can update the story bible through tools.
+### Handoff design
 
-Its responsibilities are deliberately narrow:
+The route emits a status event immediately before and after each major agent phase. The client does not guess agent status from the amount of prose on screen; it renders the events sent by the server.
 
-1. Read established story facts.
-2. Suggest the next scene's dramatic beats.
-3. Identify possible new character traits or setting facts.
-4. Propose reader-facing directions after a scene is written.
+That distinction matters in a demo: when Concept is finished but Dialogue is still writing, the Writers Table reflects that exact handoff rather than showing a generic loading state.
 
-### Plotter Agent
+---
 
-The Plotter Agent transforms the beat sheet into a scene brief containing the setting, point of view, emotional movement, and intended ending. This creates a stable handoff between planning and prose generation.
+## Story-bible memory
 
-### Dialogue Agent
+The story bible is the durable memory layer for Loom. It is intentionally structured rather than storing one opaque prompt transcript.
 
-The Dialogue Agent receives the scene brief and writes prose directly through a streaming Qwen call. It is streamed separately from the deep-agent invocations because the browser needs to receive prose tokens as they are generated.
+### Characters
 
-### Continuity Checker
+Characters include:
 
-The Continuity Checker receives the completed scene and reads the current story bible. When it identifies an issue, it calls the bound continuity tool with a human-readable description. Database IDs are bound in closures instead of being requested from the model, reducing the chance of malformed opaque identifiers.
+- Name.
+- Free-form traits such as appearance, accent, skills, or fears.
+- Arc summary.
+- First-appearance episode.
 
-### Story bible extraction
+The Concept Agent can merge new traits into an existing character by name. Database IDs are resolved server-side so the model does not have to reproduce UUIDs.
 
-The generation route performs an explicit post-scene extraction pass. This is intentionally separate from optional Concept Agent tool calls. It ensures that durable facts from the actual prose can be persisted even when a model chooses not to call a write tool.
+### World rules
 
-The extraction flow is:
+World rules include:
+
+- Rule text.
+- Category such as setting, geography, magic system, technology, or institution.
+- Episode that established the rule.
+
+After Dialogue completes a scene, a dedicated extraction pass asks Qwen to identify durable facts explicitly established by the prose. The route parses the result, checks it case-insensitively against existing rules, and inserts only new rules.
 
 ```mermaid
 flowchart TD
-    scene[Completed scene] --> context[Existing world rules + scene text]
-    context --> model[Qwen bible extraction call]
-    model --> parse[Parse JSON with tolerant fallback]
-    parse --> dedupe[Case-insensitive duplicate check]
-    dedupe -->|New rule| insert[Insert world rule]
-    dedupe -->|Existing rule| skip[Skip duplicate]
-    insert --> bible[Story Bible]
+    Scene["Completed scene"] --> Existing["Load existing world rules"]
+    Existing --> Extract["Qwen extracts durable facts"]
+    Scene --> Extract
+    Extract --> Parse["Parse JSON / tolerant fallback"]
+    Parse --> Compare{"Already in bible?"}
+    Compare -->|Yes| Ignore["Do not duplicate"]
+    Compare -->|No| Save["Insert world rule<br/>with establishing episode"]
+    Save --> Bible["Story Bible"]
 ```
 
-## Streaming Protocol
+### Continuity flags
 
-The generation endpoint returns newline-delimited JSON rather than one large response. Each line is a complete JSON event.
+Flags are attached to a scene and can optionally reference a character. They have one of three types:
+
+- `contradiction`
+- `drift`
+- `unresolved`
+
+The manuscript renders a small marker beside the relevant scene text. Selecting the marker opens the explanation without interrupting the reading flow.
+
+---
+
+## Branching story model
+
+The root branch represents the original timeline. A selected reader choice creates a child branch linked to the active branch.
+
+```mermaid
+graph TD
+    Root["Original timeline<br/>Scene 1"]
+    Root --> A["Choice: Enter the hallway"]
+    Root --> B["Choice: Call for help"]
+    A --> A1["Branch A<br/>Scene 2"]
+    B --> B1["Branch B<br/>Scene 2"]
+    A1 --> A2Choice["Choice: Open the red door"]
+    A2Choice --> A2["Branch A2<br/>Scene 3"]
+```
+
+When generating on a child branch, Loom builds the visible history from the branch and its ancestors. This lets a child branch inherit earlier scenes while allowing sibling branches to reuse scene numbers independently.
+
+The database uniqueness rule is branch-scoped:
+
+```text
+UNIQUE (branch_id, scene_number)
+```
+
+This replaces the old episode-wide `(episode_id, scene_number)` constraint, which would incorrectly prevent two branches from both having a Scene 2.
+
+---
+
+## Streaming protocol
+
+The generation endpoint returns newline-delimited JSON (NDJSON). Every line is a complete event, which lets the client process agent status and prose as they arrive.
 
 ### Endpoint
 
@@ -213,42 +314,34 @@ POST /api/episodes/{episodeId}/generate
 Content-Type: application/json
 ```
 
-### Request body
+### Request
 
 ```json
 {
-  "choice": "Follow the new door before it disappears",
+  "choice": "Enter the hallway before the door disappears",
   "branchId": "optional-active-branch-uuid"
 }
 ```
 
-Both fields are optional. Omitting `choice` produces an unsteered continuation. Omitting `branchId` uses or creates the episode's root branch.
+Both fields are optional. Without `choice`, the scene is unsteered. Without `branchId`, the route uses or creates the episode root branch.
 
 ### Status event
 
 ```json
 {
   "type": "status",
-  "agent": "continuity",
-  "status": "reviewing",
-  "summary": "Cross-referencing established world rules"
+  "agent": "dialogue",
+  "status": "writing",
+  "summary": "Drafting scene 4"
 }
 ```
-
-Possible agent statuses include:
-
-- `thinking`
-- `writing`
-- `reviewing`
-- `done`
-- `error`
 
 ### Prose event
 
 ```json
 {
   "type": "prose",
-  "text": "The door opened onto a corridor that had not been there yesterday."
+  "text": "The hallway stretched further than the blueprints allowed."
 }
 ```
 
@@ -260,11 +353,11 @@ Possible agent statuses include:
   "sceneId": "scene-uuid",
   "branchId": "branch-uuid",
   "parentBranchId": "parent-branch-uuid-or-null",
-  "choice": "Follow the new door before it disappears",
+  "choice": "Enter the hallway before the door disappears",
   "choices": [
     "Step through before the hallway changes",
     "Call Mara and wait for backup",
-    "Mark the door and investigate the blueprints"
+    "Mark the door and inspect the blueprints"
   ],
   "status": "complete",
   "continuityFlags": [],
@@ -281,9 +374,17 @@ Possible agent statuses include:
 }
 ```
 
-The route resets the episode status to `drafting` after an error, and the active agent run is marked as failed when possible.
+The route sends cache-control headers intended to prevent proxy buffering:
 
-## Data Model
+```text
+Content-Type: application/x-ndjson; charset=utf-8
+Cache-Control: no-cache, no-transform
+X-Accel-Buffering: no
+```
+
+---
+
+## Data model
 
 ```mermaid
 erDiagram
@@ -375,23 +476,73 @@ erDiagram
     }
 ```
 
-### Branch behavior
+### Access patterns
 
-The root branch represents the original timeline. Selecting a reader choice creates a child branch whose `parentBranchId` points to the active branch. A scene generated on a child branch includes the scenes inherited from its ancestors when building context.
+| Need | Query pattern |
+|---|---|
+| List a user's stories | Filter `stories.clerk_user_id` by authenticated Clerk user ID |
+| Load an episode | Join `episodes` and `stories`, then verify ownership |
+| Load a visible branch path | Walk `story_branches.parent_branch_id`, then filter scenes by ancestor branch IDs |
+| Load scene flags | Query `continuity_flags` by visible scene IDs |
+| Load the story bible | Query `characters` and `world_rules` by `story_id` |
+| Audit agent work | Query `agent_runs` by `episode_id`, branch, or scene |
+
+---
+
+## Generation lifecycle
 
 ```mermaid
-graph TD
-    root[Original timeline<br/>Scene 1] --> choiceA[Choice A]
-    root --> choiceB[Choice B]
-    choiceA --> branchA[Branch A<br/>Scene 2A]
-    choiceB --> branchB[Branch B<br/>Scene 2B]
-    branchA --> choiceA2[Choice A2]
-    choiceA2 --> branchA2[Branch A2<br/>Scene 3A2]
+sequenceDiagram
+    actor Reader
+    participant UI as Episode Workspace
+    participant Hook as useSceneStream
+    participant API as Generate Route
+    participant DB as Neon Postgres
+    participant Qwen as Qwen Cloud
+
+    Reader->>UI: Select branch or reader choice
+    UI->>Hook: start(episodeId, choice, branchId)
+    Hook->>API: POST JSON request
+    API->>DB: Authenticate story and validate branch
+    API->>DB: Create child branch when choice exists
+    API->>DB: Mark episode as writing
+
+    API-->>Hook: status: concept thinking
+    API->>Qwen: Concept invocation
+    Qwen-->>API: Beat sheet
+    API->>DB: Save Concept agent run
+
+    API-->>Hook: status: plotter thinking
+    API->>Qwen: Plotter invocation
+    Qwen-->>API: Scene brief
+    API->>DB: Save Plotter agent run
+
+    API-->>Hook: status: dialogue writing
+    API->>Qwen: Streaming Dialogue invocation
+    Qwen-->>API: Prose chunks
+    API-->>Hook: prose events
+    API->>DB: Save completed scene
+    API->>DB: Save Dialogue agent run
+
+    API->>Qwen: Extract world rules
+    Qwen-->>API: Rule candidates
+    API->>DB: Deduplicate and save rules
+    API->>Qwen: Propose choices
+    Qwen-->>API: Three directions
+    API->>DB: Save choices on scene
+
+    API-->>Hook: status: continuity reviewing
+    API->>Qwen: Continuity invocation
+    Qwen->>DB: Record flags through bound tool
+    API->>DB: Save Continuity agent run
+    API-->>Hook: final event
+    Hook->>UI: Refresh active branch
+    UI-->>Reader: Review scene and choose next direction
 ```
 
-Legacy scenes created before branches were introduced remain readable because scenes with a null `branchId` are treated as part of the visible root history.
+---
 
-## Project Structure
+## Project structure
 
 ```text
 loom/
@@ -449,7 +600,127 @@ loom/
 └── package.json
 ```
 
-## Local Development
+---
+
+## User flows
+
+### Create a story
+
+```text
+/stories/new
+  ├── Enter title and optional premise
+  ├── Submit server action
+  ├── Insert STORY
+  ├── Insert Episode 1
+  └── Redirect to /stories/[storyId]/episodes/[episodeId]
+```
+
+### Generate the first scene
+
+```text
+Episode workspace
+  ├── Click Generate next scene
+  ├── Root branch is created if needed
+  ├── Concept → Plotter → Dialogue → Bible extraction → Choices → Continuity
+  ├── Prose streams into the manuscript
+  └── Final event refreshes the persisted episode
+```
+
+### Follow a branch
+
+```text
+Completed scene
+  ├── Review prose and continuity markers
+  ├── Choose one of three directions
+  ├── Server creates child STORY_BRANCH
+  ├── Next scene is generated on that branch
+  └── URL becomes /episodes/[episodeId]?branch=[branchId]
+```
+
+### Review the story bible
+
+```text
+Episode workspace sidebar
+  ├── Writers Table tab: live agent statuses
+  └── Story Bible tab:
+      ├── Characters
+      └── World Rules
+```
+
+---
+
+## API reference
+
+### `POST /api/episodes/[episodeId]/generate`
+
+Generates the next scene for an authenticated episode.
+
+**Request body:**
+
+```json
+{
+  "choice": "Follow the signal beneath the floorboards",
+  "branchId": "branch-uuid"
+}
+```
+
+**Behavior:**
+
+- Verifies the Clerk user owns the episode's story.
+- Rejects a second request while the episode is already `writing`.
+- Creates the root branch when necessary.
+- Creates a child branch when a choice is supplied.
+- Builds context from the active branch and its ancestors.
+- Streams NDJSON status and prose events.
+- Persists the scene, choices, agent runs, story-bible updates, and continuity flags.
+
+**Response:** `application/x-ndjson; charset=utf-8`
+
+See [Streaming protocol](#streaming-protocol) for event shapes.
+
+---
+
+## Component reference
+
+### `components/loom/episode-workspace.tsx`
+
+The main client workspace. It owns transient stream state, displays the manuscript, passes agent events to Writers Table, provides Story paths selection, and switches between Writers Table and Story Bible tabs across viewport sizes.
+
+### `components/loom/manuscript-panel.tsx`
+
+Renders persisted scenes plus the temporary streaming scene. Shows reader choices only after a scene is persisted and generation is no longer active.
+
+### `components/loom/story-bible-panel.tsx`
+
+Displays Characters and World Rules through shadcn tabs. Each tab has its own scrollable content area.
+
+### `components/loom/story-card.tsx`
+
+Uses shadcn Card primitives to display story title, premise, episode count, and the continuation link.
+
+### `hooks/use-scene-stream.ts`
+
+Reads the NDJSON response, appends prose chunks, updates per-agent status, tracks the final event, prevents duplicate starts, and resets client state after refresh.
+
+### `app/api/episodes/[episodeId]/generate/route.ts`
+
+The server-side orchestration boundary. It owns authentication checks, branch resolution, model calls, database persistence, and event emission.
+
+### `lib/agents/showrunner.ts`
+
+Defines specialized deep agents and attaches story-bible or continuity tools through closures bound to server-side IDs.
+
+### `lib/agents/tools.ts`
+
+Contains database-backed tools for reading characters/world rules, writing characters/world rules, and recording continuity issues.
+
+### `lib/qwen.ts`
+
+Creates a `ChatOpenAI` instance configured for Qwen Cloud's OpenAI-compatible base URL.
+
+---
+
+## Setup and local development
 
 ### Prerequisites
 
@@ -458,47 +729,23 @@ loom/
 - A Clerk application.
 - A Qwen Cloud account and API key.
 
-### Install dependencies
+### Install
 
 ```bash
+git clone <your-loom-repository-url>
+cd loom
 npm install
 ```
 
-On Windows PowerShell environments where `npm.ps1` is blocked by execution policy, use:
+On Windows PowerShell environments where `npm.ps1` is blocked by execution policy:
 
 ```powershell
 npm.cmd install
 ```
 
-### Environment variables
+### Configure the database
 
-Create a `.env` file in the project root:
-
-```env
-DATABASE_URL=postgresql://...
-
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/stories
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/stories
-
-QWEN_API_KEY=sk-...
-QWEN_MODEL=qwen-max
-```
-
-Loom uses the Qwen Cloud OpenAI-compatible endpoint:
-
-```text
-https://dashscope-intl.aliyuncs.com/compatible-mode/v1
-```
-
-The endpoint is configured in `lib/qwen.ts`; the API key must remain server-side.
-
-### Database setup
-
-Push the current Drizzle schema to the development database:
+Push the current Drizzle schema to a development database:
 
 ```bash
 npm run db:push
@@ -510,289 +757,281 @@ On Windows:
 npm.cmd run db:push
 ```
 
-The schema includes the branch-specific scene uniqueness constraint:
-
-```text
-(branch_id, scene_number)
-```
-
-This replaces the previous episode-wide scene uniqueness rule so sibling branches can each contain a Scene 2.
-
-### Start the development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### Useful scripts
-
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Start the Next.js development server |
-| `npm run build` | Build the production application |
-| `npm run start` | Start the production server |
-| `npm run typecheck` | Run TypeScript validation |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format TypeScript and TSX files |
-| `npm run db:push` | Push schema changes directly to the database |
-| `npm run db:generate` | Generate Drizzle migration artifacts |
-| `npm run db:migrate` | Apply generated migrations |
-| `npm run db:check` | Validate Drizzle migration state |
-
-## Authentication and Security
-
-Clerk is the source of truth for identity. Loom stores the authenticated Clerk user ID on each story and filters story access by that ID.
-
-The generation route validates:
-
-1. The request has an authenticated Clerk user.
-2. The episode exists.
-3. The episode belongs to a story owned by the authenticated user.
-4. Any requested branch belongs to the requested episode.
-
-The Qwen key and database connection string are server-only values. They must not be prefixed with `NEXT_PUBLIC_` and must never be sent to the browser.
-
-## Error Handling and Recovery
-
-Generation is intentionally best-effort around optional enhancements:
-
-- Choice generation failure does not discard the generated scene.
-- Story-bible extraction failure does not discard prose or continuity results.
-- Continuity failure resets the episode to a draftable state and emits an error event.
-- Agent run records retain error messages and completion timestamps when available.
-- The client guards against fast double-clicks with a synchronous streaming ref.
-- The server also rejects generation when an episode is already marked `writing`.
-
-## Demo Walkthrough
-
-For a strong hackathon demonstration:
-
-1. Open Loom and sign in.
-2. Create a story with a premise that contains a memorable setting rule.
-3. Start Episode 1.
-4. Show the Concept and Plotter status transitions.
-5. Let Dialogue stream the opening scene live.
-6. Switch to the Story Bible tab and show extracted characters and world rules.
-7. Point out any inline Continuity note.
-8. Select one of the three reader choices.
-9. Show that the Story paths selector now contains the original timeline and the selected branch.
-10. Switch branches to demonstrate that alternate paths remain available.
-11. Generate another scene and show the branch-specific continuity context.
-
-## Troubleshooting
-
-### The Story paths selector only shows Original timeline
-
-Branches are created when a reader choice is selected, not when the root scene is generated. Generate a scene, wait for the choices section, and select one of the choices.
-
-If the Concept Agent reports `No choices proposed`:
-
-- Confirm `QWEN_API_KEY` is present.
-- Restart the development server after environment changes.
-- Check the generation request in the browser Network panel.
-- Check the server terminal for Qwen request errors.
-
-### Story Bible has no world rules
-
-World-rule extraction runs after newly generated scenes. Existing scenes created before the extraction pass are not automatically backfilled. Generate another scene or add a dedicated backfill workflow in a future iteration.
-
-### Database push asks about a unique constraint
-
-The intended unique constraint is:
+If Drizzle asks about the scenes unique constraint, the intended constraint is:
 
 ```text
 scenes_branch_id_scene_number_unique
 ```
 
-It covers `(branch_id, scene_number)`. The old episode-wide constraint on `(episode_id, scene_number)` must not remain because it prevents sibling branches from using the same scene number.
+It must cover `(branch_id, scene_number)`, not `(episode_id, scene_number)`.
 
-### Streaming appears buffered
+### Start the app
 
-The route sends:
+```bash
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000).
+
+### Useful scripts
+
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Create a production build |
+| `npm run start` | Start the production server |
+| `npm run typecheck` | Run TypeScript validation |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Format TypeScript and TSX files |
+| `npm run db:push` | Push the current Drizzle schema |
+| `npm run db:generate` | Generate migration artifacts |
+| `npm run db:migrate` | Apply generated migrations |
+| `npm run db:check` | Check migration state |
+
+---
+
+## Environment variables
+
+Create `.env` in the project root:
+
+```bash
+# Neon Postgres
+DATABASE_URL=postgresql://...
+
+# Clerk
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/stories
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/stories
+
+# Qwen Cloud
+QWEN_API_KEY=sk-...
+QWEN_MODEL=qwen-max
+```
+
+### Where to get each value
+
+| Variable | Source |
+|---|---|
+| `DATABASE_URL` | Neon project connection details |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk dashboard → API Keys |
+| `CLERK_SECRET_KEY` | Clerk dashboard → API Keys |
+| `QWEN_API_KEY` | Qwen Cloud dashboard → API keys |
+| `QWEN_MODEL` | Optional; defaults to `qwen-max` |
+
+The Qwen base URL is configured in `lib/qwen.ts` and is not exposed as a client variable.
+
+---
+
+## Qwen Cloud, Neon, and Clerk setup
+
+### Qwen Cloud
+
+1. Create or open a Qwen Cloud account.
+2. Generate an API key.
+3. Add the key as `QWEN_API_KEY`.
+4. Confirm the selected model is available to the account.
+5. Keep the key server-side; never prefix it with `NEXT_PUBLIC_`.
+
+The project uses the OpenAI-compatible endpoint rather than a provider-specific SDK:
 
 ```text
-Content-Type: application/x-ndjson; charset=utf-8
-Cache-Control: no-cache, no-transform
-X-Accel-Buffering: no
+https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ```
 
-If deployed behind a reverse proxy, disable proxy buffering and ensure the request timeout is longer than the expected Qwen generation time.
+### Neon Postgres
 
-### TypeScript or dependency problems
+1. Create a Neon project.
+2. Copy the pooled or direct connection string into `DATABASE_URL`.
+3. Run `npm run db:push` during local development.
+4. Use reviewed migrations for a shared or production database.
 
-Run:
+### Clerk
 
-```bash
-npm run typecheck
-npm run lint
-```
+1. Create a Clerk application.
+2. Copy the publishable and secret keys.
+3. Configure sign-in and sign-up paths as `/sign-in` and `/sign-up`.
+4. Configure fallback redirects to `/stories`.
+5. Confirm the catch-all pages exist under `app/sign-in` and `app/sign-up`.
 
-On Windows PowerShell, use `npm.cmd` if the PowerShell npm wrapper is blocked.
+---
 
-## Deployment Notes
+## Key technical decisions
 
-Before deploying:
+### PostgreSQL over a document-only store
 
-1. Configure all Clerk, Neon, and Qwen environment variables in the hosting provider.
-2. Apply the Drizzle schema to the production database using a controlled migration process.
-3. Confirm the production reverse proxy does not buffer NDJSON responses.
-4. Confirm serverless request duration limits accommodate multi-agent generation.
-5. Confirm the Qwen API key is not exposed in client bundles.
-6. Run `npm run build` with production environment variables.
+Stories, episodes, branches, scenes, flags, characters, world rules, and agent runs have meaningful relationships. Postgres gives Loom referential integrity, filtering, ordering, and straightforward ownership queries while keeping the schema readable.
 
-For a production deployment, prefer generated and reviewed migrations over repeatedly using `db:push` against a shared database.
+### Qwen through the OpenAI-compatible interface
 
-## Observability Opportunities
+The model adapter is isolated in `lib/qwen.ts`. This keeps the agents independent from provider-specific client code and makes model changes a configuration decision rather than a rewrite across every agent.
 
-The current `agent_runs` table provides a foundation for operational visibility. Useful metrics to add include:
+### NDJSON instead of a single final JSON response
 
-- Generation duration by agent.
-- Token usage by agent and story.
-- Qwen request failure rate.
-- Choice-generation success rate.
-- Number of continuity flags per episode.
-- Average number of branches per story.
-- Story-bible growth per episode.
-- Percentage of scenes that require regeneration.
+The browser needs both live prose and live agent status. A single final JSON object cannot communicate those events progressively. NDJSON keeps each event independently parseable and works naturally with a Next.js `ReadableStream`.
 
-```mermaid
-flowchart LR
-    request[Generation request] --> runs[agent_runs]
-    runs --> metrics[Metrics aggregation]
-    metrics --> dashboard[Cost, latency, quality dashboard]
-    runs --> audit[Debugging and audit trail]
-    flags[Continuity flags] --> quality[Story quality signals]
-    quality --> dashboard
-```
+### Dialogue is streamed directly
 
-## Testing Strategy
+Concept, Plotter, and Continuity are internal orchestration phases. Dialogue is the user-facing writing phase, so it uses a direct streaming model call rather than hiding all prose inside a deep-agent invocation.
 
-The current baseline validation is TypeScript type-checking:
+### Database IDs are bound in closures
 
-```bash
-npm run typecheck
-```
+The model sees character names and narrative concepts. The server binds `storyId`, `episodeId`, and `sceneId` into tools. This avoids asking a language model to copy UUIDs accurately across a multi-agent handoff.
 
-Recommended automated coverage:
+### Branches are explicit data
 
-### Unit tests
+A branch is not just a prompt string or a browser state variable. It is persisted with its parent and selected choice so the story graph can be resumed, inspected, and extended later.
 
-- Parse valid and fenced JSON choice responses.
-- Parse world-rule extraction responses.
-- Deduplicate rules case-insensitively.
-- Resolve branch ancestry.
-- Build the correct visible scene path.
+### Review before continuation
 
-### Route tests
+Loom prioritizes a strong interactive demo and human creative control over unattended generation of an entire episode. The user sees the generated scene, reviews continuity, and chooses the next direction.
 
-- Reject unauthenticated requests.
-- Reject branches belonging to another episode.
-- Reject a second generation while the episode is writing.
-- Emit status, prose, final, and error events in the expected format.
-- Persist scene, branch, agent run, choices, and flags.
+---
 
-### Component tests
+## Design trade-offs
 
-- Render the Writers Table and Story Bible tabs.
-- Show the selected branch label rather than its UUID.
-- Render the Story Bible empty states.
-- Render continuity markers and descriptions.
-- Submit the new story form through the server action.
+### Sequential pipeline versus parallel agents
 
-### End-to-end tests
+Concept must finish before Plotter can expand the beat sheet, and Plotter must finish before Dialogue can write. The pipeline is therefore intentionally sequential at its core. Some follow-up work, such as choice generation and bible extraction, is best-effort and isolated so a failure does not discard the scene.
 
-```mermaid
-flowchart TD
-    signup[Sign up] --> create[Create story]
-    create --> generate[Generate scene]
-    generate --> review[Review prose]
-    review --> choose[Choose direction]
-    choose --> branch[Verify new branch]
-    branch --> bible[Verify story bible]
-    bible --> continuity[Verify continuity flags]
-```
+### Structured output versus tolerant parsing
 
-## Design Principles
+Qwen-compatible providers and model versions can differ in structured-output support. Loom prompts for JSON where useful, but also parses fenced JSON and numbered-list fallbacks for choices and story-bible extraction. This favors graceful degradation over assuming every provider response format is identical.
 
-### Make agent collaboration visible
+### Automatic memory versus explicit memory
 
-The writers' room is part of the product experience. Agent status and handoff summaries should remain understandable to a human observer.
+The story bible is explicit and inspectable. This is more useful for a visual demo than hiding all memory inside embeddings, although semantic retrieval is a future direction for very long stories.
 
-### Keep IDs out of model decisions
+### One scene per request versus full episode generation
 
-Opaque database IDs are bound in server-side tool closures whenever possible. Models should work with names and narrative concepts, while the server owns identity and relationships.
+One scene per request makes the stream easy to understand, keeps costs bounded, and lets the reader steer. It also means a complete episode requires several user interactions.
 
-### Persist the meaningful checkpoints
+### `db:push` versus migration files
 
-Scenes, choices, branches, story-bible changes, continuity flags, and agent runs are stored so a long generation flow can be inspected and resumed.
+`db:push` is convenient during hackathon iteration. Production deployments should use generated, reviewed migrations so schema changes are controlled and reversible.
 
-### Fail softly around optional intelligence
+---
 
-Choice suggestions and bible extraction improve the experience but should not destroy successfully generated prose if they fail.
+## Known limitations
 
-### Keep the human in the creative loop
+- Existing scenes created before the story-bible extraction pass are not automatically backfilled.
+- World-bible extraction is best-effort and depends on the scene containing durable setting facts.
+- Choice generation can fail without preventing the scene from being saved; the user can still continue unsteered.
+- The current branch selector lists child choices as labels; it does not yet show branch summaries or a visual graph.
+- Continuity flags are recorded and displayed, but resolution and dismissal workflows are not yet implemented.
+- Agent runs are persisted for auditability, but there is not yet a dedicated run-history screen.
+- Episode status is currently scoped around scene generation; complete episode lifecycle controls are future work.
+- The app has type-check validation, but a full automated end-to-end test suite is still a roadmap item.
 
-The user chooses when to continue, which branch to follow, and which continuity issues to review.
+---
 
-## Future Scope
+## Roadmap
 
-### Near-term product improvements
+### Memory and continuity
 
-- Backfill story-bible rules and characters from existing scenes.
-- Add editable character and world-rule forms.
-- Add continuity flag resolution and dismissal actions.
-- Add scene regeneration with version history.
-- Add branch names and branch summaries instead of raw choice labels.
-- Add episode completion controls and episode-to-episode progression.
-- Add an agent transcript drawer with full handoff inputs and outputs.
+- [ ] Backfill characters and world rules from existing scenes.
+- [ ] Add editable character and world-rule forms.
+- [ ] Add continuity flag resolution, dismissal, and revision actions.
+- [ ] Add semantic retrieval for long story bibles.
+- [ ] Show provenance for every memory item.
 
-### Advanced orchestration
+### Branching and interaction
 
-- Replace the sequential route pipeline with a durable LangGraph state machine.
-- Add approval checkpoints between Concept, Plotter, Dialogue, and Continuity.
-- Allow parallel Concept and continuity research where dependencies permit.
-- Add a Showrunner agent that decides when to retry, revise, or escalate to the user.
-- Add automatic scene revision from resolved continuity flags.
+- [ ] Add branch names and summaries.
+- [ ] Add a visual story graph.
+- [ ] Add branch comparison and replay controls.
+- [ ] Add checkpoints and save slots.
+- [ ] Support multiple endings and convergence points.
 
-### Memory and retrieval
+### Agent orchestration
 
-- Add semantic embeddings for scenes, characters, rules, and unresolved threads.
-- Retrieve only relevant story-bible facts for long stories.
-- Summarize old episodes into compact memory blocks.
-- Add memory provenance showing which scene established each fact.
-- Add a searchable story-bible interface.
-
-### Richer interactive fiction
-
-- Add branch comparison views.
-- Add a visual story graph.
-- Add checkpoints and save slots.
-- Add reader profile preferences.
-- Support multiple endings and convergence points.
-- Add scene-level rewinds and alternate-choice replay.
+- [ ] Add approval checkpoints after Concept, Plotter, Dialogue, and Continuity.
+- [ ] Add a Showrunner agent for retries, revisions, and escalation.
+- [ ] Add durable background jobs for full-episode generation.
+- [ ] Add cancellation and Qwen request abort propagation.
+- [ ] Add retry policies with exponential backoff.
 
 ### Creative formats
 
-- Script and screenplay formatting.
-- Audio narration with multiple character voices.
-- Illustrated scene cards.
-- Interactive dialogue mode.
-- Podcast and episodic audio production.
-- Narrative game integration.
+- [ ] Add screenplay and script formatting.
+- [ ] Add scene illustrations.
+- [ ] Add audio narration and character voices.
+- [ ] Add podcast-style production workflows.
+- [ ] Add narrative game integration.
 
 ### Production readiness
 
-- Add rate limiting and per-user generation quotas.
-- Add request cancellation and abort propagation to Qwen.
-- Add retry policies with exponential backoff.
-- Add durable job processing for long episodes.
-- Add structured audit logs.
-- Add provider fallback support.
-- Add cost budgets and token alerts.
-- Add content safety and moderation workflows.
+- [ ] Add rate limits and per-user token budgets.
+- [ ] Add cost and latency dashboards.
+- [ ] Add structured audit logs.
+- [ ] Add provider fallback support.
+- [ ] Add content safety and moderation workflows.
 
-## License and Hackathon Context
+---
 
-Loom is being developed for the Global AI Hackathon Series with Qwen Cloud. Qwen Cloud is accessed through its OpenAI-compatible API, and the project is designed to demonstrate creative multi-agent orchestration, persistent memory, visible collaboration, and branching story generation.
+## Observability opportunities
+
+The `agent_runs` table provides the starting point for quality and cost monitoring.
+
+```mermaid
+flowchart LR
+    Request["Generation request"] --> Runs["agent_runs"]
+    Runs --> Latency["Agent latency"]
+    Runs --> Tokens["Token usage"]
+    Runs --> Errors["Error rates"]
+    Flags["Continuity flags"] --> Quality["Quality signals"]
+    Latency --> Dashboard["Future dashboard"]
+    Tokens --> Dashboard
+    Errors --> Dashboard
+    Quality --> Dashboard
+```
+
+Useful future metrics include:
+
+- Generation duration by agent.
+- Tokens per scene and branch.
+- Qwen request failure rate.
+- Choice-generation success rate.
+- Continuity flags per scene.
+- World-rule growth per episode.
+- Average branch depth and branch count.
+- Regeneration frequency.
+
+---
+
+## Hackathon submission notes
+
+**Primary track:** AI Showrunner
+
+**Secondary strengths:** MemoryAgent and Agent Society
+
+### What makes Loom memorable
+
+1. **The writers' room is visible** — judges can watch agents hand work to one another.
+2. **The story remembers** — characters and world rules persist beyond the current prompt.
+3. **The continuity checker has receipts** — issues are saved and rendered inline rather than described vaguely after generation.
+4. **Reader choices matter** — branches are persisted instead of overwriting the previous timeline.
+5. **The demo has a clear loop** — premise → live collaboration → manuscript → continuity → choice → branch.
+
+### Suggested demo script
+
+1. Create a premise with a memorable rule, such as a hallway that grows a new door every night.
+2. Generate a scene and show the Concept, Plotter, Dialogue, and Continuity statuses.
+3. Switch to Story Bible and show the extracted world rule.
+4. Return to the manuscript and inspect a continuity marker if one appears.
+5. Select a reader direction.
+6. Show the new branch in the Story paths select.
+7. Switch back to Original timeline to prove the alternate path was preserved.
+8. Generate another scene on the selected branch.
+
+---
+
+## License
+
+This project is currently a private hackathon project. Add the license and repository links here when the project is published.
+
+---
+
+Built with Next.js, Clerk, Neon Postgres, LangChain, deepagents, and Qwen Cloud for the Global AI Hackathon Series.
