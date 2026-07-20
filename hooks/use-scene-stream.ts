@@ -9,6 +9,10 @@ type AgentEventMap = Partial<Record<AgentName, { status: AgentStatus; summary?: 
 interface FinalEvent {
     type: "final";
     sceneId: string;
+    branchId: string;
+    parentBranchId: string | null;
+    choice: string | null;
+    choices: string[];
     status: "complete" | "flagged";
     continuityFlags: Array<{ id: string; description: string; flagType: string }>;
     totalTokens?: number;
@@ -20,7 +24,7 @@ interface UseSceneStreamResult {
     final: FinalEvent | null;
     isStreaming: boolean;
     error: string | null;
-    start: (episodeId: string, choice?: string) => Promise<void>;
+    start: (episodeId: string, choice?: string, branchId?: string) => Promise<void>;
     reset: () => void;
 }
 
@@ -35,7 +39,7 @@ export function useSceneStream(): UseSceneStreamResult {
     // React re-renders the button's disabled state).
     const isStreamingRef = useRef(false);
 
-    const start = useCallback(async (episodeId: string, choice?: string) => {
+    const start = useCallback(async (episodeId: string, choice?: string, branchId?: string) => {
         if (isStreamingRef.current) return;
         isStreamingRef.current = true;
 
@@ -50,7 +54,7 @@ export function useSceneStream(): UseSceneStreamResult {
             const res = await fetch(`/api/episodes/${episodeId}/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ choice: choice ?? null }),
+                body: JSON.stringify({ choice: choice ?? null, branchId: branchId ?? null }),
             });
             if (!res.body) throw new Error("No response stream from server");
 
