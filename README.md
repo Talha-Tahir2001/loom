@@ -3,7 +3,7 @@
 > **Stories that remember. Choices that matter.**
 > A multi-agent writers' room for branching interactive fiction, where Concept, Plotter, Dialogue, and Continuity agents collaborate to write episodic stories while a persistent story bible keeps the world coherent.
 >
-> Built for the **Global AI Hackathon Series with Qwen Cloud** — Track 2: AI Showrunner, with strong overlap with Track 1: MemoryAgent and Track 3: Agent Society.
+> Built for the **[Global AI Hackathon Series with Qwen Cloud](https://qwencloud-hackathon.devpost.com/)** — Track 2: AI Showrunner, with strong overlap with Track 1: MemoryAgent and Track 3: Agent Society.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
@@ -1029,9 +1029,7 @@ Useful future metrics include:
 ---
 
 ## License
-
-This project is currently a private hackathon project. Add the license and repository links here when the project is published.
-
+This project is open-source and available under the [MIT License](https://github.com/Talha-Tahir2001/loom/blob/main/LICENSE).
 ---
 
-Built with Next.js, Clerk, Neon Postgres, LangChain, deepagents, and Qwen Cloud for the Global AI Hackathon Series.
+Built with Next.js, Clerk, Neon Postgres, LangChain, deepagents, and Qwen Cloud for the [Global AI Hackathon Series with Qwen Cloud](https://qwencloud-hackathon.devpost.com/).
