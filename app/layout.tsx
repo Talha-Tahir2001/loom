@@ -3,10 +3,11 @@ import { Geist, Geist_Mono, Roboto_Slab, EB_Garamond } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
+import { ClerkProvider } from "@clerk/nextjs";
 
-const ebGaramondHeading = EB_Garamond({subsets:['latin'],variable:'--font-heading'});
+const ebGaramondHeading = EB_Garamond({ subsets: ['latin'], variable: '--font-heading' });
 
-const robotoSlab = Roboto_Slab({subsets:['latin'],variable:'--font-serif'});
+const robotoSlab = Roboto_Slab({ subsets: ['latin'], variable: '--font-serif' });
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -30,7 +31,11 @@ export default function RootLayout({
       className={cn("antialiased", fontSans.variable, fontMono.variable, "font-serif", robotoSlab.variable, ebGaramondHeading.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   )
