@@ -2,6 +2,7 @@
 export * from "./enums";
 export * from "./stories";
 export * from "./episodes";
+export * from "./branches";
 export * from "./characters";
 export * from "./world-rules";
 export * from "./scenes";

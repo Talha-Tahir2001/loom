@@ -20,6 +20,7 @@
 import { pgTable, uuid, integer, text, boolean, unique, jsonb } from "drizzle-orm/pg-core";
 import { episodes } from "./episodes";
 import { agentNameEnum } from "./enums";
+import { storyBranches } from "./branches";
 
 export const scenes = pgTable(
     "scenes",
@@ -28,6 +29,8 @@ export const scenes = pgTable(
         episodeId: uuid("episode_id")
             .notNull()
             .references(() => episodes.id, { onDelete: "cascade" }),
+        branchId: uuid("branch_id").references(() => storyBranches.id, { onDelete: "cascade" }),
+        parentSceneId: uuid("parent_scene_id"),
         sceneNumber: integer("scene_number").notNull(),
         content: text("content").notNull().default(""),
         agentAuthor: agentNameEnum("agent_author").notNull(),
@@ -35,11 +38,6 @@ export const scenes = pgTable(
         nextChoices: jsonb("next_choices").$type<string[]>(),
     },
     (table) => ({
-        // Defense in depth against a double-fired generate request (e.g. a
-        // fast double-click before the button's disabled state re-renders)
-        // inserting two scenes with the same number. The client-side guard in
-        // useSceneStream should prevent this in practice, but this makes it
-        // impossible at the database level too.
-        uniqueEpisodeScene: unique().on(table.episodeId, table.sceneNumber),
+        uniqueBranchScene: unique().on(table.branchId, table.sceneNumber),
     })
 );

@@ -7,6 +7,7 @@ import { worldRules } from "./world-rules";
 import { scenes } from "./scenes";
 import { continuityFlags } from "./continuity-flags";
 import { agentRuns } from "./agent-runs";
+import { storyBranches } from "./branches";
 
 export const storiesRelations = relations(stories, ({ many }) => ({
     episodes: many(episodes),
@@ -19,6 +20,12 @@ export const episodesRelations = relations(episodes, ({ one, many }) => ({
     scenes: many(scenes),
     continuityFlags: many(continuityFlags),
     agentRuns: many(agentRuns),
+    branches: many(storyBranches),
+}));
+
+export const storyBranchesRelations = relations(storyBranches, ({ one, many }) => ({
+    episode: one(episodes, { fields: [storyBranches.episodeId], references: [episodes.id] }),
+    scenes: many(scenes),
 }));
 
 export const charactersRelations = relations(characters, ({ one, many }) => ({
@@ -40,6 +47,7 @@ export const worldRulesRelations = relations(worldRules, ({ one }) => ({
 
 export const scenesRelations = relations(scenes, ({ one, many }) => ({
     episode: one(episodes, { fields: [scenes.episodeId], references: [episodes.id] }),
+    branch: one(storyBranches, { fields: [scenes.branchId], references: [storyBranches.id] }),
     continuityFlags: many(continuityFlags),
 }));
 
@@ -54,4 +62,5 @@ export const continuityFlagsRelations = relations(continuityFlags, ({ one }) => 
 
 export const agentRunsRelations = relations(agentRuns, ({ one }) => ({
     episode: one(episodes, { fields: [agentRuns.episodeId], references: [episodes.id] }),
+    branch: one(storyBranches, { fields: [agentRuns.branchId], references: [storyBranches.id] }),
 }));
