@@ -1,6 +1,14 @@
 // components/loom/story-card.tsx
 import Link from "next/link";
 import { IconBook, IconArrowRight } from "@tabler/icons-react";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import type { Story } from "@/lib/types";
 
 interface StoryCardProps {
@@ -18,26 +26,27 @@ export function StoryCard({ story, episodeCount, latestEpisode }: StoryCardProps
         : `/stories/${story.id}`;
 
     return (
-        <Link
-            href={href}
-            className="group flex flex-col justify-between rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50"
-        >
-            <div>
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                    <IconBook className="h-4 w-4" />
-                    <span className="font-heading text-[10px] uppercase tracking-widest">
+        <Link href={href} className="group block h-full">
+            <Card className="h-full border border-border shadow-none transition-colors group-hover:border-primary/50">
+                <CardHeader>
+                    <CardDescription className="flex items-center gap-2 font-heading text-[10px] uppercase tracking-widest">
+                        <IconBook className="h-4 w-4" />
                         {episodeCount} {episodeCount === 1 ? "episode" : "episodes"}
-                    </span>
-                </div>
-                <h2 className="mb-1.5 font-serif text-lg text-card-foreground">{story.title}</h2>
+                    </CardDescription>
+                    <CardTitle className="font-serif text-lg text-card-foreground">
+                        {story.title}
+                    </CardTitle>
+                </CardHeader>
                 {story.premise && (
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{story.premise}</p>
+                    <CardContent>
+                        <p className="line-clamp-2 text-sm text-muted-foreground">{story.premise}</p>
+                    </CardContent>
                 )}
-            </div>
-            <div className="mt-4 flex items-center gap-1 font-heading text-xs uppercase tracking-widest text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                Continue
-                <IconArrowRight className="h-3 w-3" />
-            </div>
+                <CardFooter className="mt-auto justify-end gap-1 font-heading text-xs uppercase tracking-widest text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                    Continue
+                    <IconArrowRight className="h-3 w-3" />
+                </CardFooter>
+            </Card>
         </Link>
     );
 }

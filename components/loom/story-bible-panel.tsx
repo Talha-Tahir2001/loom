@@ -9,11 +9,11 @@ interface StoryBiblePanelProps {
 
 export function StoryBiblePanel({ characters, worldRules }: StoryBiblePanelProps) {
     return (
-        <div className="flex flex-1 flex-col overflow-hidden p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
             <h2 className="mb-3 font-heading text-xs uppercase tracking-widest text-muted-foreground">
                 Story Bible
             </h2>
-            <Tabs defaultValue="characters" className="flex flex-1 flex-col overflow-hidden">
+            <Tabs defaultValue="characters" className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <TabsList className="w-full">
                     <TabsTrigger value="characters" className="flex-1">
                         Characters
@@ -23,7 +23,7 @@ export function StoryBiblePanel({ characters, worldRules }: StoryBiblePanelProps
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="characters" className="flex-1 space-y-2 overflow-y-auto pt-2">
+                <TabsContent value="characters" className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-2">
                     {characters.map((c) => (
                         <div key={c.id} className="rounded-md border border-border bg-card p-3">
                             <p className="font-heading text-sm tracking-wide text-card-foreground">{c.name}</p>
@@ -37,7 +37,7 @@ export function StoryBiblePanel({ characters, worldRules }: StoryBiblePanelProps
                     )}
                 </TabsContent>
 
-                <TabsContent value="rules" className="flex-1 space-y-2 overflow-y-auto pt-2">
+                <TabsContent value="rules" className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-2">
                     {worldRules.map((r) => (
                         <div key={r.id} className="rounded-md border border-border bg-card p-3">
                             <p className="font-heading text-[10px] uppercase tracking-widest text-muted-foreground">
