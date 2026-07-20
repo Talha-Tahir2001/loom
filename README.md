@@ -1029,7 +1029,9 @@ Useful future metrics include:
 ---
 
 ## License
+
 This project is open-source and available under the [MIT License](https://github.com/Talha-Tahir2001/loom/blob/main/LICENSE).
+
 ---
 
 Built with Next.js, Clerk, Neon Postgres, LangChain, deepagents, and Qwen Cloud for the [Global AI Hackathon Series with Qwen Cloud](https://qwencloud-hackathon.devpost.com/).
