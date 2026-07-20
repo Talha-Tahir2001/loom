@@ -41,6 +41,30 @@ export interface Scene {
     agentAuthor: AgentName;
     isStreaming?: boolean;
     nextChoices: string[] | null; // no .notNull() in schema
+    branchId: string | null;
+    parentSceneId: string | null;
+}
+
+export interface StoryBranch {
+    id: string;
+    episodeId: string;
+    parentBranchId: string | null;
+    choice: string | null;
+    createdAt: string;
+}
+
+export interface AgentRun {
+    id: string;
+    episodeId: string;
+    branchId: string | null;
+    sceneId: string | null;
+    agentName: AgentName;
+    status: "pending" | "running" | "success" | "error";
+    summary: string | null;
+    error: string | null;
+    totalTokens: number | null;
+    startedAt: string;
+    finishedAt: string | null;
 }
 
 export interface Character {
