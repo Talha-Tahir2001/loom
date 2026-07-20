@@ -51,7 +51,7 @@ export default function NewStoryPage() {
                         name="premise"
                         rows={5}
                         placeholder="A detective investigates a hallway that grows a new door every night she isn't looking."
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 font-serif text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="font-serif"
                     />
                 </div>
 
