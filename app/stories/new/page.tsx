@@ -3,6 +3,7 @@ import Link from "next/link";
 import { IconArrowLeft } from '@tabler/icons-react'
 import { Button } from "@/components/ui/button";
 import { createStoryAction } from "./actions";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function NewStoryPage() {
     return (
@@ -45,7 +46,7 @@ export default function NewStoryPage() {
                     >
                         Premise <span className="normal-case text-muted-foreground/70">(optional)</span>
                     </label>
-                    <textarea
+                    <Textarea
                         id="premise"
                         name="premise"
                         rows={5}

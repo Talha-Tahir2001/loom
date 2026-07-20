@@ -55,7 +55,7 @@ export default async function StoriesPage() {
                         Your stories
                     </h1>
                     <Button size="sm">
-                        <Link href="/stories/new">
+                        <Link href="/stories/new" className="inline-flex items-center gap-1.5">
                             <IconPlus className="h-4 w-4" />
                             New story
                         </Link>

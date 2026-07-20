@@ -9,16 +9,19 @@ import {
     characters as charactersTable,
     worldRules as worldRulesTable,
     continuityFlags as continuityFlagsTable,
+    storyBranches,
 } from "@/db/schemas";
 import { EpisodeWorkspace } from "@/components/loom/episode-workspace";
-import type { ContinuityFlag } from "@/lib/types";
+import type { ContinuityFlag, StoryBranch } from "@/lib/types";
 
 interface PageProps {
     params: Promise<{ storyId: string; episodeId: string }>;
+    searchParams: Promise<{ branch?: string }>;
 }
 
-export default async function EpisodePage({ params }: PageProps) {
+export default async function EpisodePage({ params, searchParams }: PageProps) {
     const { storyId, episodeId } = await params;
+    const { branch: requestedBranchId } = await searchParams;
     const { userId } = await auth();
     if (!userId) redirect("/sign-in");
 
@@ -34,15 +37,25 @@ export default async function EpisodePage({ params }: PageProps) {
 
     const { episode, story } = episodeRow;
 
-    const [episodeScenes, storyCharacters, storyWorldRules] = await Promise.all([
-        db
-            .select()
-            .from(scenesTable)
-            .where(eq(scenesTable.episodeId, episode.id))
-            .orderBy(asc(scenesTable.sceneNumber)),
+    const [allEpisodeScenes, branches, storyCharacters, storyWorldRules] = await Promise.all([
+        db.select().from(scenesTable).where(eq(scenesTable.episodeId, episode.id)),
+        db.select().from(storyBranches).where(eq(storyBranches.episodeId, episode.id)),
         db.select().from(charactersTable).where(eq(charactersTable.storyId, story.id)),
         db.select().from(worldRulesTable).where(eq(worldRulesTable.storyId, story.id)),
     ]);
+
+    const activeBranch = requestedBranchId
+        ? branches.find((branch) => branch.id === requestedBranchId)
+        : branches.find((branch) => !branch.parentBranchId && !branch.choice);
+    const visibleBranchIds = new Set<string>();
+    let currentBranch = activeBranch;
+    while (currentBranch) {
+        visibleBranchIds.add(currentBranch.id);
+        currentBranch = branches.find((branch) => branch.id === currentBranch?.parentBranchId);
+    }
+    const episodeScenes = allEpisodeScenes
+        .filter((scene) => !scene.branchId || visibleBranchIds.has(scene.branchId))
+        .sort((left, right) => left.sceneNumber - right.sceneNumber);
 
     const sceneIds = episodeScenes.map((s) => s.id);
     const flagRows =
@@ -70,6 +83,11 @@ export default async function EpisodePage({ params }: PageProps) {
             }}
             episode={{ ...episode, createdAt: episode.createdAt.toISOString() }}
             scenes={episodeScenes}
+            branches={branches.map((branch): StoryBranch => ({
+                ...branch,
+                createdAt: branch.createdAt.toISOString(),
+            }))}
+            activeBranchId={activeBranch?.id ?? null}
             flagsBySceneId={flagsBySceneId}
             characters={storyCharacters.map((c) => ({ ...c, traits: c.traits ?? {} }))}
             worldRules={storyWorldRules}
